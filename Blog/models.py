@@ -1,8 +1,20 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.urls import reverse
+
+
+
+class Category(models.Model):
+    '''Класс категорий статей'''
+
+    title = models.CharField('Название', max_length=50)
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.title
 
 
 
@@ -16,14 +28,13 @@ class PublishedManager(models.Manager):
         return super().get_queryset().filter(status='published')
 
 
-
-'''Модель постов'''
 class Post (models.Model):
     STATUS_CHOICES = (('draft', 'Draft'), ('published', 'Published'))
 
     title = models.CharField(max_length=250, verbose_name='Название')
+    category = models.ForeignKey(Category, verbose_name='Категория', on_delete=models.SET_NULL, null=True)
     slug = models.SlugField(max_length=250, unique_for_date='published')
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts', verbose_name='Автор')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts')
     image = models.ImageField(upload_to= generate_filename, verbose_name='Изображение')
     body = models.TextField(verbose_name='Содержание')
     published = models.DateTimeField(default=timezone.now)
@@ -31,7 +42,8 @@ class Post (models.Model):
     update = models.DateTimeField(auto_now=True)
     likes = models.PositiveIntegerField(default=0, verbose_name='Лайки')
     dislikes = models.PositiveIntegerField(default=0, verbose_name='Дизлайки')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft') # Статус публикации поста( опубликован или  в черновике)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+
 
     @property
     def photo_url(self):
@@ -42,6 +54,24 @@ class Post (models.Model):
 
     def __str__(self):
          return self.title
+
+    def get_absolute_url(self):
+        return reverse('Blog:post_detail', args=[self.published.year, self.published.month, self.published.day, self.slug])
+
+
+
+class Wisdom(models.Model):
+    w_title = models.CharField(max_length=50, verbose_name='Название мысли')
+    slug = models.SlugField(max_length=250, unique_for_date='published')
+    message = models.TextField(max_length= 300, verbose_name='Содержание мысли')
+    published = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ('-published',)
+
+    def __str__(self):
+        return self.w_title
+
 
     def get_absolute_url(self):
         return reverse('Blog:post_detail', args=[self.published.year, self.published.month, self.published.day, self.slug])
